@@ -1,35 +1,34 @@
-import { createRef, FunctionalComponent, h, RefObject } from 'preact';
-import { useContext, useState } from "preact/hooks";
-import { forwardRef } from 'preact/compat'
-import { VideoContext, videoState } from './VideoContext';
+import {createRef, FunctionalComponent, h, RefObject} from 'preact';
+import {forwardRef} from 'preact/compat'
+import {actionType, useVideoDispatch, useVideoState, VideoStateProvider, videoStateType} from './VideoContext';
 
-type StartButtonProps = { videoRef: RefObject<HTMLVideoElement> };
-type CurrentTimeProps = { currentTime: number };
+const CurrentTime = () => {
+    const state = useVideoState();
 
-const CurrentTime = ({ currentTime }: CurrentTimeProps) => {
-    return <div>{currentTime}</div>
+    return <div>{state.currentTime}</div>
 }
 
-const VideoStartButton = ({ videoRef }: StartButtonProps) => {
-    const { state } = useContext(VideoContext);
-    const isPlaying = state === videoState.PLAY;
-    const toggleVideoState = () => {
-        if(isPlaying) {
-            videoRef.current?.pause();
-        } else {
-            videoRef.current?.play();
-        }
-    }
+const VideoStartButton = ({ videoRef }: { videoRef: RefObject<HTMLVideoElement> }) => {
+const state = useVideoState();
 
-    return <button onClick={toggleVideoState}>{isPlaying ? '멈춰!' : '시작!'}</button>
+const isPlaying = state.videoState === videoStateType.PLAY;
+const toggleVideoState = () => {
+    if(isPlaying) {
+        videoRef.current?.pause();
+    } else {
+        videoRef.current?.play();
+    }
+}
+
+return <button onClick={toggleVideoState}>{isPlaying ? '멈춰!' : '시작!'}</button>
 }
 
 const Video = forwardRef<HTMLVideoElement>((props, ref) => {
-    const {setState, setCurrentTime} = useContext(VideoContext);
+    const dispatch = useVideoDispatch();
 
-    const setPlay = () => setState(videoState.PLAY);
-    const setPause = () => setState(videoState.PAUSE);
-    const updateCurrentTime = () => setCurrentTime(ref.current.currentTime);
+    const setPlay = () => dispatch({ type: actionType.SET_STATE, videoState: videoStateType.PLAY });
+    const setPause = () => dispatch({ type: actionType.SET_STATE, videoState: videoStateType.PAUSE });
+    const updateCurrentTime = () => dispatch({ type: actionType.UPDATE_CURRENT_TIME, currentTime: ref.current.currentTime });
 
     return (
         <video
@@ -43,18 +42,16 @@ const Video = forwardRef<HTMLVideoElement>((props, ref) => {
 });
 
 const App: FunctionalComponent = () => {
-    const [state, setState] = useState(videoState.PAUSE);
-    const [currentTime, setCurrentTime] = useState(0);
     const videoRef = createRef();
 
     return (
-        <div id="preact_root">
-            <VideoContext.Provider value={{state, setState, currentTime, setCurrentTime}}>
+        <VideoStateProvider>
+            <div id="preact_root">
                 <Video ref={videoRef} />
                 <VideoStartButton videoRef={videoRef} />
-                <CurrentTime currentTime={currentTime} />
-            </VideoContext.Provider>
-        </div>
+                <CurrentTime />
+            </div>
+        </VideoStateProvider>
     );
 };
 
